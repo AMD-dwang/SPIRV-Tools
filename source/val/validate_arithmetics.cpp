@@ -189,7 +189,8 @@ spv_result_t ArithmeticsPass(ValidationState_t& _, const Instruction* inst) {
 
     case spv::Op::OpMatrixTimesScalar: {
       if (!_.IsFloatMatrixType(result_type) &&
-          !_.IsCooperativeMatrixType(result_type))
+          !(_.IsCooperativeMatrixNVType(result_type) ||
+            _.IsCooperativeMatrixKHRType(result_type)))
         return _.diag(SPV_ERROR_INVALID_DATA, inst)
                << "Expected float matrix type as Result Type: "
                << spvOpcodeString(opcode);
@@ -461,22 +462,108 @@ spv_result_t ArithmeticsPass(ValidationState_t& _, const Instruction* inst) {
       const uint32_t B_type_id = _.GetOperandTypeId(inst, 3);
       const uint32_t C_type_id = _.GetOperandTypeId(inst, 4);
 
-      if (!_.IsCooperativeMatrixType(A_type_id)) {
+      if (!_.IsCooperativeMatrixNVType(A_type_id)) {
         return _.diag(SPV_ERROR_INVALID_DATA, inst)
                << "Expected cooperative matrix type as A Type: "
                << spvOpcodeString(opcode);
       }
-      if (!_.IsCooperativeMatrixType(B_type_id)) {
+      if (!_.IsCooperativeMatrixNVType(B_type_id)) {
         return _.diag(SPV_ERROR_INVALID_DATA, inst)
                << "Expected cooperative matrix type as B Type: "
                << spvOpcodeString(opcode);
       }
-      if (!_.IsCooperativeMatrixType(C_type_id)) {
+      if (!_.IsCooperativeMatrixNVType(C_type_id)) {
         return _.diag(SPV_ERROR_INVALID_DATA, inst)
                << "Expected cooperative matrix type as C Type: "
                << spvOpcodeString(opcode);
       }
-      if (!_.IsCooperativeMatrixType(D_type_id)) {
+      if (!_.IsCooperativeMatrixNVType(D_type_id)) {
+        return _.diag(SPV_ERROR_INVALID_DATA, inst)
+               << "Expected cooperative matrix type as Result Type: "
+               << spvOpcodeString(opcode);
+      }
+
+      const auto A = _.FindDef(A_type_id);
+      const auto B = _.FindDef(B_type_id);
+      const auto C = _.FindDef(C_type_id);
+      const auto D = _.FindDef(D_type_id);
+
+      std::tuple<bool, bool, uint32_t> A_scope, B_scope, C_scope, D_scope,
+          A_rows, B_rows, C_rows, D_rows, A_cols, B_cols, C_cols, D_cols;
+
+      A_scope = _.EvalInt32IfConst(A->GetOperandAs<uint32_t>(2));
+      B_scope = _.EvalInt32IfConst(B->GetOperandAs<uint32_t>(2));
+      C_scope = _.EvalInt32IfConst(C->GetOperandAs<uint32_t>(2));
+      D_scope = _.EvalInt32IfConst(D->GetOperandAs<uint32_t>(2));
+
+      A_rows = _.EvalInt32IfConst(A->GetOperandAs<uint32_t>(3));
+      B_rows = _.EvalInt32IfConst(B->GetOperandAs<uint32_t>(3));
+      C_rows = _.EvalInt32IfConst(C->GetOperandAs<uint32_t>(3));
+      D_rows = _.EvalInt32IfConst(D->GetOperandAs<uint32_t>(3));
+
+      A_cols = _.EvalInt32IfConst(A->GetOperandAs<uint32_t>(4));
+      B_cols = _.EvalInt32IfConst(B->GetOperandAs<uint32_t>(4));
+      C_cols = _.EvalInt32IfConst(C->GetOperandAs<uint32_t>(4));
+      D_cols = _.EvalInt32IfConst(D->GetOperandAs<uint32_t>(4));
+
+      const auto notEqual = [](std::tuple<bool, bool, uint32_t> X,
+                               std::tuple<bool, bool, uint32_t> Y) {
+        return (std::get<1>(X) && std::get<1>(Y) &&
+                std::get<2>(X) != std::get<2>(Y));
+      };
+
+      if (notEqual(A_scope, B_scope) || notEqual(A_scope, C_scope) ||
+          notEqual(A_scope, D_scope) || notEqual(B_scope, C_scope) ||
+          notEqual(B_scope, D_scope) || notEqual(C_scope, D_scope)) {
+        return _.diag(SPV_ERROR_INVALID_DATA, inst)
+               << "Cooperative matrix scopes must match: "
+               << spvOpcodeString(opcode);
+      }
+
+      if (notEqual(A_rows, C_rows) || notEqual(A_rows, D_rows) ||
+          notEqual(C_rows, D_rows)) {
+        return _.diag(SPV_ERROR_INVALID_DATA, inst)
+               << "Cooperative matrix 'M' mismatch: "
+               << spvOpcodeString(opcode);
+      }
+
+      if (notEqual(B_cols, C_cols) || notEqual(B_cols, D_cols) ||
+          notEqual(C_cols, D_cols)) {
+        return _.diag(SPV_ERROR_INVALID_DATA, inst)
+               << "Cooperative matrix 'N' mismatch: "
+               << spvOpcodeString(opcode);
+      }
+
+      if (notEqual(A_cols, B_rows)) {
+        return _.diag(SPV_ERROR_INVALID_DATA, inst)
+               << "Cooperative matrix 'K' mismatch: "
+               << spvOpcodeString(opcode);
+      }
+      break;
+    }
+
+    case spv::Op::OpCooperativeMatrixMulAddKHR: {
+      const uint32_t D_type_id = _.GetOperandTypeId(inst, 1);
+      const uint32_t A_type_id = _.GetOperandTypeId(inst, 2);
+      const uint32_t B_type_id = _.GetOperandTypeId(inst, 3);
+      const uint32_t C_type_id = _.GetOperandTypeId(inst, 4);
+
+      if (!_.IsCooperativeMatrixAType(A_type_id)) {
+        return _.diag(SPV_ERROR_INVALID_DATA, inst)
+               << "Cooperative matrix type must be A Type: "
+               << spvOpcodeString(opcode);
+      }
+      if (!_.IsCooperativeMatrixBType(B_type_id)) {
+        return _.diag(SPV_ERROR_INVALID_DATA, inst)
+               << "Cooperative matrix type must be B Type: "
+               << spvOpcodeString(opcode);
+      }
+      if (!_.IsCooperativeMatrixAccType(C_type_id)) {
+        return _.diag(SPV_ERROR_INVALID_DATA, inst)
+               << "Cooperative matrix type must be Accumulator Type: "
+               << spvOpcodeString(opcode);
+      }
+      if (!_.IsCooperativeMatrixKHRType(D_type_id)) {
         return _.diag(SPV_ERROR_INVALID_DATA, inst)
                << "Expected cooperative matrix type as Result Type: "
                << spvOpcodeString(opcode);

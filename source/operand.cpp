@@ -263,6 +263,13 @@ const char* spvOperandTypeStr(spv_operand_type_t type) {
       return "OpenCL.DebugInfo.100 debug operation";
     case SPV_OPERAND_TYPE_CLDEBUG100_DEBUG_IMPORTED_ENTITY:
       return "OpenCL.DebugInfo.100 debug imported entity";
+    case SPV_OPERAND_TYPE_OPTIONAL_COOPERATIVE_MATRIX_OPERANDS:
+    case SPV_OPERAND_TYPE_COOPERATIVE_MATRIX_OPERANDS:
+      return "cooperative matirx operands";
+    case SPV_OPERAND_TYPE_COOPERATIVE_MATRIX_LAYOUT:
+      return "cooperative matirx layout";
+    case SPV_OPERAND_TYPE_COOPERATIVE_MATRIX_USE:
+      return "cooperative matirx use";
 
     // The next values are for values returned from an instruction, not actually
     // an operand.  So the specific strings don't matter.  But let's add them
@@ -369,6 +376,9 @@ bool spvOperandIsConcrete(spv_operand_type_t type) {
     case SPV_OPERAND_TYPE_QUANTIZATION_MODES:
     case SPV_OPERAND_TYPE_OVERFLOW_MODES:
     case SPV_OPERAND_TYPE_PACKED_VECTOR_FORMAT:
+    case SPV_OPERAND_TYPE_COOPERATIVE_MATRIX_OPERANDS:
+    case SPV_OPERAND_TYPE_COOPERATIVE_MATRIX_LAYOUT:
+    case SPV_OPERAND_TYPE_COOPERATIVE_MATRIX_USE:
       return true;
     default:
       break;
@@ -406,6 +416,7 @@ bool spvOperandIsOptional(spv_operand_type_t type) {
     case SPV_OPERAND_TYPE_OPTIONAL_ACCESS_QUALIFIER:
     case SPV_OPERAND_TYPE_OPTIONAL_PACKED_VECTOR_FORMAT:
     case SPV_OPERAND_TYPE_OPTIONAL_CIV:
+    case SPV_OPERAND_TYPE_OPTIONAL_COOPERATIVE_MATRIX_OPERANDS:
       return true;
     default:
       break;

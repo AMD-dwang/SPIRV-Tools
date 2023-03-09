@@ -1141,23 +1141,63 @@ bool ValidationState_t::IsAccelerationStructureType(uint32_t id) const {
   return inst && inst->opcode() == spv::Op::OpTypeAccelerationStructureKHR;
 }
 
-bool ValidationState_t::IsCooperativeMatrixType(uint32_t id) const {
+bool ValidationState_t::IsCooperativeMatrixNVType(uint32_t id) const {
   const Instruction* inst = FindDef(id);
   return inst && inst->opcode() == spv::Op::OpTypeCooperativeMatrixNV;
 }
 
+bool ValidationState_t::IsCooperativeMatrixKHRType(uint32_t id) const {
+  const Instruction* inst = FindDef(id);
+  return inst && inst->opcode() == spv::Op::OpTypeCooperativeMatrixKHR;
+}
+
+bool ValidationState_t::IsCooperativeMatrixAType(uint32_t id) const {
+  if (!IsCooperativeMatrixKHRType(id)) return false;
+  const Instruction* inst = FindDef(id);
+  uint64_t matrixUse = 0;
+  if (GetConstantValUint64(inst->word(6), &matrixUse)) {
+    return matrixUse ==
+          static_cast<uint64_t>(spv::CooperativeMatrixUse::MatrixAKHR);
+  }
+  return false;
+}
+
+bool ValidationState_t::IsCooperativeMatrixBType(uint32_t id) const {
+  if (!IsCooperativeMatrixKHRType(id)) return false;
+  const Instruction* inst = FindDef(id);
+  uint64_t matrixUse = 0;
+  if (GetConstantValUint64(inst->word(6), &matrixUse)) {
+    return matrixUse ==
+        static_cast<uint64_t>(spv::CooperativeMatrixUse::MatrixBKHR);
+  }
+  return false;
+}
+bool ValidationState_t::IsCooperativeMatrixAccType(uint32_t id) const {
+  if (!IsCooperativeMatrixKHRType(id)) return false;
+  const Instruction* inst = FindDef(id);
+  uint64_t matrixUse = 0;
+  if (GetConstantValUint64(inst->word(6), &matrixUse)) {
+    return matrixUse ==
+        static_cast<uint64_t>(spv::CooperativeMatrixUse::MatrixAccumulatorKHR);
+  }
+  return false;
+}
+
 bool ValidationState_t::IsFloatCooperativeMatrixType(uint32_t id) const {
-  if (!IsCooperativeMatrixType(id)) return false;
+  if (!IsCooperativeMatrixNVType(id) &&
+      !IsCooperativeMatrixKHRType(id)) return false;
   return IsFloatScalarType(FindDef(id)->word(2));
 }
 
 bool ValidationState_t::IsIntCooperativeMatrixType(uint32_t id) const {
-  if (!IsCooperativeMatrixType(id)) return false;
+  if (!IsCooperativeMatrixNVType(id) &&
+      !IsCooperativeMatrixKHRType(id)) return false;
   return IsIntScalarType(FindDef(id)->word(2));
 }
 
 bool ValidationState_t::IsUnsignedIntCooperativeMatrixType(uint32_t id) const {
-  if (!IsCooperativeMatrixType(id)) return false;
+  if (!IsCooperativeMatrixNVType(id) &&
+      !IsCooperativeMatrixKHRType(id)) return false;
   return IsUnsignedIntScalarType(FindDef(id)->word(2));
 }
 
@@ -1173,8 +1213,7 @@ spv_result_t ValidationState_t::CooperativeMatrixShapesMatch(
   const auto m1_type = FindDef(m1);
   const auto m2_type = FindDef(m2);
 
-  if (m1_type->opcode() != spv::Op::OpTypeCooperativeMatrixNV ||
-      m2_type->opcode() != spv::Op::OpTypeCooperativeMatrixNV) {
+  if (m1_type->opcode() != m2_type->opcode()) {
     return diag(SPV_ERROR_INVALID_DATA, inst)
            << "Expected cooperative matrix types";
   }

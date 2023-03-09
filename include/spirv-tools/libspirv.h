@@ -289,6 +289,16 @@ typedef enum spv_operand_type_t {
   // It should come last.
   SPV_OPERAND_TYPE_NUM_OPERAND_TYPES,
 
+  // Cooperative matrix set
+  // An optional Cooperative Matrix Operands
+  SPV_OPERAND_TYPE_OPTIONAL_COOPERATIVE_MATRIX_OPERANDS,
+  // Concrete types enum
+  SPV_OPERAND_TYPE_COOPERATIVE_MATRIX_OPERANDS, // Sec 3.x
+  // Cooperative Matrix Layout
+  SPV_OPERAND_TYPE_COOPERATIVE_MATRIX_LAYOUT,  // Sec 3.x
+  // Cooperative Matrix Use
+  SPV_OPERAND_TYPE_COOPERATIVE_MATRIX_USE, // Sec 3.x
+
   SPV_FORCE_32_BIT_ENUM(spv_operand_type_t)
 } spv_operand_type_t;
 

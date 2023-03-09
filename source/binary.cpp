@@ -664,7 +664,11 @@ spv_result_t Parser::parseOperand(size_t inst_offset,
     case SPV_OPERAND_TYPE_QUANTIZATION_MODES:
     case SPV_OPERAND_TYPE_OVERFLOW_MODES:
     case SPV_OPERAND_TYPE_PACKED_VECTOR_FORMAT:
-    case SPV_OPERAND_TYPE_OPTIONAL_PACKED_VECTOR_FORMAT: {
+    case SPV_OPERAND_TYPE_OPTIONAL_PACKED_VECTOR_FORMAT:
+    case SPV_OPERAND_TYPE_OPTIONAL_COOPERATIVE_MATRIX_OPERANDS:
+    case SPV_OPERAND_TYPE_COOPERATIVE_MATRIX_OPERANDS:
+    case SPV_OPERAND_TYPE_COOPERATIVE_MATRIX_LAYOUT:
+    case SPV_OPERAND_TYPE_COOPERATIVE_MATRIX_USE: {
       // A single word that is a plain enum value.
 
       // Map an optional operand type to its corresponding concrete type.
@@ -672,6 +676,8 @@ spv_result_t Parser::parseOperand(size_t inst_offset,
         parsed_operand.type = SPV_OPERAND_TYPE_ACCESS_QUALIFIER;
       if (type == SPV_OPERAND_TYPE_OPTIONAL_PACKED_VECTOR_FORMAT)
         parsed_operand.type = SPV_OPERAND_TYPE_PACKED_VECTOR_FORMAT;
+      else if (type == SPV_OPERAND_TYPE_OPTIONAL_COOPERATIVE_MATRIX_OPERANDS)
+        parsed_operand.type = SPV_OPERAND_TYPE_COOPERATIVE_MATRIX_OPERANDS;
 
       spv_operand_desc entry;
       if (grammar_.lookupOperand(type, word, &entry)) {
